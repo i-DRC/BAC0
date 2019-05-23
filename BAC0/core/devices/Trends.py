@@ -108,19 +108,18 @@ class TrendLog(TrendLogProperties):
             year, month, day, dow = each.timestamp.date
             year = year + 1900
             hours, minutes, seconds, ms = each.timestamp.time
-            index.append(
-                pd.to_datetime(
-                    "{}-{}-{} {}:{}:{}.{}".format(
-                        year, month, day, hours, minutes, seconds, ms
-                    ),
-                    format="%Y-%m-%d %H:%M:%S.%f",
-                )
+            idx = "{}-{}-{} {}:{}:{}.{}".format(
+                year, month, day, hours, minutes, seconds, ms
             )
+            index.append(idx)
             logdatum.append(each.logDatum.dict_contents())
             status.append(each.statusFlags)
 
         if _PANDAS:
             df = pd.DataFrame({"index": index, "logdatum": logdatum, "status": status})
+            df["index"] = df["index"].apply(
+                lambda x: pd.datetime(x, format="%Y-%m-%d %H:%M:%S.%f")
+            )
             df = df.set_index("index")
             df["choice"] = df["logdatum"].apply(lambda x: list(x.keys())[0])
             df[self.properties.object_name] = df["logdatum"].apply(
@@ -141,11 +140,13 @@ class TrendLog(TrendLogProperties):
                 self.properties.log_device_object_property.objectIdentifier
             )
             try:
-                logged_point = self.properties.device.find_point(objectType, objectAddress)
+                logged_point = self.properties.device.find_point(
+                    objectType, objectAddress
+                )
             except ValueError:
                 logged_point = None
             serie = self.properties._df[self.properties.object_name].copy()
-            serie.units = logged_point.properties.units_state if logged_point else 'n/a'
+            serie.units = logged_point.properties.units_state if logged_point else "n/a"
             serie.name = ("{}/{}").format(
                 self.properties.device.properties.name, self.properties.object_name
             )
@@ -154,7 +155,9 @@ class TrendLog(TrendLogProperties):
             else:
                 if logged_point.properties.name in self.properties.device.binary_states:
                     serie.states = "binary"
-                elif logged_point.properties.name in self.properties.device.multi_states:
+                elif (
+                    logged_point.properties.name in self.properties.device.multi_states
+                ):
                     serie.states = "multistates"
                 else:
                     serie.states = "analog"
