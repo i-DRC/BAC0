@@ -165,7 +165,7 @@ class Discover:
     Define BACnet WhoIs and IAm functions.
     """
 
-    def whois(self, *args, global_broadcast=False, destination=None):
+    def whois(self, *args, global_broadcast=False, destination=None, timeout=None):
         """
         Build a WhoIs request
 
@@ -210,6 +210,8 @@ class Discover:
         if destination:
             request.pduDestination = Address(destination)
         iocb = IOCB(request)  # make an IOCB
+        if timeout:
+            iocb.set_timeout(timeout)
         self.this_application._last_i_am_received = []
         # pass to the BACnet stack
         deferred(self.this_application.request_io, iocb)
